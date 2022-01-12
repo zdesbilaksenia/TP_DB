@@ -16,6 +16,8 @@ type PostRepositoryInterface interface {
 }
 
 type ServiceRepositoryInterface interface {
+	GetStatus() (models.Status, error)
+	Clear() error
 }
 
 type ThreadRepositoryInterface interface {

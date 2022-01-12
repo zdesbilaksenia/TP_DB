@@ -15,6 +15,7 @@ type ThreadUseCaseStruct struct {
 func CreateThreadUseCase(threadRepository repository.ThreadRepositoryInterface, userRepository repository.UserRepositoryInterface, postRepository repository.PostRepositoryInterface) *ThreadUseCaseStruct {
 	return &ThreadUseCaseStruct{threadRepository: threadRepository, userRepository: userRepository, postRepository: postRepository}
 }
+
 func (threadUseCase *ThreadUseCaseStruct) ThreadGet(slug string, id int) (*models.Thread, int) {
 	var err error
 	var thread models.Thread
@@ -81,6 +82,11 @@ func (threadUseCase *ThreadUseCaseStruct) ThreadCreatePosts(slug string, id int,
 				return nil, 409
 			}
 		}
+
+		_, err := threadUseCase.userRepository.UserGet(posts[i].Author)
+		if err != nil {
+			return nil, 404
+		}
 	}
 
 	posts, err = threadUseCase.threadRepository.CreateThreadPosts(posts, thread.Id, thread.Forum)
@@ -125,7 +131,7 @@ func (threadUseCase *ThreadUseCaseStruct) ThreadVote(vote models.Vote, slug stri
 	}
 
 	err = threadUseCase.threadRepository.VoteThread(vote, thread.Id)
-
+	log.Println(err)
 	if err == nil {
 		thread, err := threadUseCase.threadRepository.GetThreadById(id)
 		log.Println(thread)

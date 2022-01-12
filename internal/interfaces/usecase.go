@@ -16,6 +16,8 @@ type PostUseCaseInterface interface {
 }
 
 type ServiceUseCaseInterface interface {
+	ServiceClear() int
+	ServiceGetStatus() (*models.Status, int)
 }
 
 type ThreadUseCaseInterface interface {

@@ -16,8 +16,8 @@ const (
 					RETURNING id, parent, author, message, isedited, forum, thread, created`
 	UpdateThreadBySlug = `UPDATE thread SET title = COALESCE(NULLIF($1, ''), title), message = COALESCE(NULLIF($2, ''), message) WHERE slug = $3 RETURNING *`
 	UpdateThreadById   = `UPDATE thread SET title = COALESCE(NULLIF($1, ''), title), message = COALESCE(NULLIF($2, ''), message) WHERE id = $3 RETURNING *`
-	CreateVote         = `INSERT INTO vote (thread, nickname, voice) VALUES ($1, $2, $3)`
-	UpdateVote         = `UPDATE vote SET voice = $1 WHERE thread = $2 AND nickname = $3`
+	CreateVote         = `INSERT INTO votes (thread, nickname, voice) VALUES ($1, $2, $3)`
+	UpdateVote         = `UPDATE votes SET voice = $1 WHERE thread = $2 AND nickname = $3`
 	GetPosts           = `SELECT id, parent, author, message, isedited, forum, thread, created FROM post WHERE thread = $1`
 	GetPostsTree       = `SELECT id, parent, author, message, isedited, forum, thread, created FROM post WHERE path[1] in`
 )
@@ -283,6 +283,7 @@ func (threadRepository *ThreadRepositoryStruct) VoteThread(vote models.Vote, id 
 	}
 
 	if strings.Contains(err.Error(), "duplicate") {
+		log.Println("duplicate")
 		_, err = threadRepository.DB.Exec(UpdateVote, vote.Voice, id, vote.Nickname)
 		if err != nil {
 			return err
