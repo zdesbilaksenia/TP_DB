@@ -7,8 +7,6 @@ import (
 	"os"
 )
 
-const logMessage = "main:"
-
 func main() {
 	application, err := app.NewApp()
 	if err != nil {
