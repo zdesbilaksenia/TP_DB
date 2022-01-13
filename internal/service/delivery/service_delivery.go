@@ -21,6 +21,7 @@ func (serviceDelivery *ServiceDeliveryStruct) SetHandlers(router *routing.Router
 }
 
 func (serviceDelivery *ServiceDeliveryStruct) ServiceClear(ctx *routing.Context) error {
+	ctx.SetContentType("application/json")
 	code := serviceDelivery.serviceUseCase.ServiceClear()
 	switch code {
 	case 200:
@@ -30,6 +31,7 @@ func (serviceDelivery *ServiceDeliveryStruct) ServiceClear(ctx *routing.Context)
 }
 
 func (serviceDelivery *ServiceDeliveryStruct) ServiceGetStatus(ctx *routing.Context) error {
+	ctx.SetContentType("application/json")
 	status, code := serviceDelivery.serviceUseCase.ServiceGetStatus()
 	data, err := json.Marshal(status)
 	if err != nil {

@@ -32,7 +32,7 @@ type App struct {
 	//db           *sql.DB
 }
 
-const dbConfig = "host=127.0.0.1 port=5000 user=ksenia dbname=postgres password=password sslmode=disable"
+const dbConfig = "host=127.0.0.1 port=5432 user=ksenia dbname=postgres password=password sslmode=disable"
 
 func ConnectDatabase(config string) *pgx.ConnPool {
 	pgxConnectionConfig, err := pgx.ParseConnectionString(config)

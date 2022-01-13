@@ -3,7 +3,6 @@ package usecase
 import (
 	repository "TP_DB/internal/interfaces"
 	"TP_DB/internal/models"
-	"log"
 )
 
 type ThreadUseCaseStruct struct {
@@ -77,7 +76,10 @@ func (threadUseCase *ThreadUseCaseStruct) ThreadCreatePosts(slug string, id int,
 
 	for i, _ := range posts {
 		if posts[i].Parent != 0 {
-			_, err := threadUseCase.postRepository.GetPostInfo(posts[i].Parent)
+			post, err := threadUseCase.postRepository.GetPostInfo(posts[i].Parent)
+			if post.Thread != thread.Id {
+				return nil, 409
+			}
 			if err != nil {
 				return nil, 409
 			}
@@ -130,11 +132,15 @@ func (threadUseCase *ThreadUseCaseStruct) ThreadVote(vote models.Vote, slug stri
 		}
 	}
 
+	user, err := threadUseCase.userRepository.UserGet(vote.Nickname)
+	if err != nil {
+		return nil, 404
+	}
+	vote.Nickname = user.Nickname
+
 	err = threadUseCase.threadRepository.VoteThread(vote, thread.Id)
-	log.Println(err)
 	if err == nil {
-		thread, err := threadUseCase.threadRepository.GetThreadById(id)
-		log.Println(thread)
+		thread, err := threadUseCase.threadRepository.GetThreadById(thread.Id)
 		if err == nil {
 			return &thread, 200
 		}

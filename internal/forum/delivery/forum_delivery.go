@@ -115,6 +115,8 @@ func (forumDelivery *ForumDeliveryStruct) ForumGetBySlug(ctx *routing.Context) e
 }
 
 func (forumDelivery *ForumDeliveryStruct) ForumGetThreads(ctx *routing.Context) error {
+	ctx.SetContentType("application/json")
+
 	slug := ctx.Param("slug")
 	limit := ctx.QueryArgs().GetUintOrZero("limit")
 	if limit == 0 {
@@ -130,13 +132,7 @@ func (forumDelivery *ForumDeliveryStruct) ForumGetThreads(ctx *routing.Context) 
 	since := string(ctx.QueryArgs().Peek("since"))
 
 	threads, code := forumDelivery.forumUseCase.ForumGetThreads(slug, limit, desc, since)
-	data, err := json.Marshal(threads)
 
-	if err != nil {
-		return err
-	}
-
-	ctx.SetContentType("application/json")
 	switch code {
 	case 404:
 		message, _ := json.Marshal(models.Err{Message: errorsMsg.UserNotExist})
@@ -144,7 +140,15 @@ func (forumDelivery *ForumDeliveryStruct) ForumGetThreads(ctx *routing.Context) 
 		ctx.Response.SetBody(message)
 	case 200:
 		ctx.Response.SetStatusCode(fasthttp.StatusOK)
-		ctx.SetBody(data)
+		if len(*threads) > 0 {
+			data, err := json.Marshal(threads)
+			if err != nil {
+				return err
+			}
+			ctx.SetBody(data)
+		} else {
+			ctx.SetBodyString("[]")
+		}
 	}
 
 	return nil
@@ -166,11 +170,6 @@ func (forumDelivery *ForumDeliveryStruct) ForumGetUsers(ctx *routing.Context) er
 	since := string(ctx.QueryArgs().Peek("since"))
 
 	users, code := forumDelivery.forumUseCase.ForumGetUsers(slug, limit, desc, since)
-	data, err := json.Marshal(users)
-
-	if err != nil {
-		return err
-	}
 
 	ctx.SetContentType("application/json")
 	switch code {
@@ -180,8 +179,15 @@ func (forumDelivery *ForumDeliveryStruct) ForumGetUsers(ctx *routing.Context) er
 		ctx.Response.SetBody(message)
 	case 200:
 		ctx.Response.SetStatusCode(fasthttp.StatusOK)
-		ctx.SetBody(data)
+		if len(*users) > 0 {
+			data, err := json.Marshal(users)
+			if err != nil {
+				return err
+			}
+			ctx.SetBody(data)
+		} else {
+			ctx.SetBodyString("[]")
+		}
 	}
-
 	return nil
 }

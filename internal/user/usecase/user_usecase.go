@@ -13,20 +13,25 @@ func CreateUserUseCase(userRepository repository.UserRepositoryInterface) *UserU
 	return &UserUseCaseStruct{userRepository: userRepository}
 }
 
-func (userUseCase *UserUseCaseStruct) UserCreate(user *models.User) (models.User, error) {
-	err := userUseCase.userRepository.UserCreate(user)
+func (userUseCase *UserUseCaseStruct) UserCreate(user *models.User) (models.User, models.Users, int) {
+	users, err := userUseCase.userRepository.UsersGet(user)
+	if err == nil && len(users) != 0 {
+		return models.User{}, users, 409
+	}
+
+	err = userUseCase.userRepository.UserCreate(user)
 
 	if err != nil {
-		return models.User{}, err
+		return models.User{}, nil, 0
 	}
 
 	userResult, err := userUseCase.userRepository.UserGet(user.Nickname)
 
 	if err != nil {
-		return models.User{}, err
+		return models.User{}, nil, 0
 	}
 
-	return userResult, nil
+	return userResult, nil, 201
 }
 
 func (userUseCase *UserUseCaseStruct) UserGet(nickname string) (models.User, error) {
@@ -35,10 +40,20 @@ func (userUseCase *UserUseCaseStruct) UserGet(nickname string) (models.User, err
 	return user, err
 }
 
-func (userUseCase *UserUseCaseStruct) UserChange(user models.User) (models.User, error) {
-	user, err := userUseCase.userRepository.UserChange(user)
+func (userUseCase *UserUseCaseStruct) UserChange(user models.User) (models.User, models.Users, int) {
+	users, err := userUseCase.userRepository.UsersGet(&user)
+	if err == nil && len(users) == 0 {
+		return models.User{}, users, 404
+	}
+	if err == nil && len(users) > 1 {
+		return models.User{}, users, 409
+	}
 
-	return user, err
+	user, err = userUseCase.userRepository.UserChange(user)
+	if err != nil {
+		return models.User{}, nil, 0
+	}
+	return user, nil, 200
 }
 
 func (userUseCase *UserUseCaseStruct) UsersGet(user models.User) (models.Users, error) {

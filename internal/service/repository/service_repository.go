@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	Clean       = `TRUNCATE thread, forum, users, votes, post`
+	Clean       = `TRUNCATE thread, forum, users, votes, post, nickname_forum CASCADE`
 	CountPost   = `SELECT COUNT(*) FROM post`
 	CountUser   = `SELECT COUNT(*) FROM users`
 	CountForum  = `SELECT COUNT(*) FROM forum`

@@ -3,7 +3,6 @@ package usecase
 import (
 	repository "TP_DB/internal/interfaces"
 	"TP_DB/internal/models"
-	"strings"
 )
 
 type ForumUseCaseStruct struct {
@@ -24,6 +23,7 @@ func (forumUseCase *ForumUseCaseStruct) ForumCreate(forum *models.Forum) (*model
 	if err != nil {
 		return nil, 404
 	}
+	forum.User = user.Nickname
 
 	var createdForum models.Forum
 	createdForum, err = forumUseCase.forumRepository.GetForumBySlug(forum.Slug)
@@ -40,29 +40,23 @@ func (forumUseCase *ForumUseCaseStruct) ForumCreate(forum *models.Forum) (*model
 }
 
 func (forumUseCase *ForumUseCaseStruct) ForumCreateThread(thread *models.Thread, forumSlug string) (*models.Thread, int) {
-	_, code := forumUseCase.ForumGetBySlug(forumSlug)
+	forum, code := forumUseCase.ForumGetBySlug(forumSlug)
 	if code == 404 {
 		return nil, 404
 	}
-	thread.Forum = forumSlug
+	thread.Forum = forum.Slug
 
 	_, err := forumUseCase.userRepository.UserGet(thread.Author)
 	if err != nil {
 		return nil, 404
 	}
 
-	threadCreated, err := forumUseCase.forumRepository.CreateForumThread(*thread)
-	if err != nil {
-		switch {
-		case strings.Contains(err.Error(), "duplicate") || strings.Contains(err.Error(), "Duplicate"):
-			threadDB, err := forumUseCase.threadRepository.GetThreadBySlug(thread.Slug)
-			if err == nil {
-				return &threadDB, 409
-			}
-		default:
-			return nil, 0
-		}
+	threadDB, err := forumUseCase.threadRepository.GetThreadBySlug(thread.Slug)
+	if err == nil && threadDB.Slug != "" {
+		return &threadDB, 409
 	}
+
+	threadCreated, err := forumUseCase.forumRepository.CreateForumThread(*thread)
 
 	return &threadCreated, 201
 }
@@ -91,12 +85,12 @@ func (forumUseCase *ForumUseCaseStruct) ForumGetThreads(slug string, limit int, 
 }
 
 func (forumUseCase *ForumUseCaseStruct) ForumGetUsers(slug string, limit int, desc bool, since string) (*models.Users, int) {
-	_, err := forumUseCase.forumRepository.GetForumBySlug(slug)
+	forum, err := forumUseCase.forumRepository.GetForumBySlug(slug)
 	if err != nil {
 		return nil, 404
 	}
 
-	users, err := forumUseCase.forumRepository.GetForumUsers(slug, limit, desc, since)
+	users, err := forumUseCase.forumRepository.GetForumUsers(forum.Slug, limit, desc, since)
 	if err == nil {
 		return &users, 200
 	}

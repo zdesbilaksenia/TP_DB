@@ -13,68 +13,7 @@ const (
 	GetThreadsDesc          = `SELECT * FROM thread WHERE forum = $1 AND created <= $2 ORDER BY created DESC LIMIT $3`
 	GetThreadsNoSince       = `SELECT * FROM thread WHERE forum = $1 ORDER BY created DESC LIMIT $2`
 	GetThreadsNoSinceNoDesc = `SELECT * FROM thread WHERE forum = $1 ORDER BY created LIMIT $2`
-	GetUsers                = `SELECT users.nickname, users.fullname, users.about, users.email
-						FROM users
-								 INNER JOIN (SELECT DISTINCT author
-											 FROM ((SELECT distinct post.author
-													FROM post
-													WHERE post.forum = $1
-													  AND post.author > $2
-													ORDER BY post.author
-													LIMIT $3 * 2)
-												   UNION ALL
-												   (SELECT distinct thread.author
-													FROM thread
-													WHERE thread.forum = $1
-													  AND thread.author > $2
-													ORDER BY thread.author
-													LIMIT $3 * 2)) as authors
-											 ORDER BY author
-											 LIMIT $3
-						) as authrs ON users.nickname = authrs.author
-						ORDER BY users.nickname`
-	GetUsersDesc = `SELECT users.nickname, users.fullname, users.about, users.email
-					FROM users
-							 INNER JOIN (SELECT DISTINCT author
-										 FROM (
-												  (SELECT distinct post.author
-												   FROM post
-												   WHERE post.forum = $1
-													 AND post.author < $2
-												   ORDER BY post.author DESC
-												   LIMIT $3 * 2)
-												  UNION ALL
-												  (SELECT distinct thread.author
-												   FROM thread
-												   WHERE thread.forum = $1
-													 AND thread.author < $2
-												   ORDER BY thread.author DESC
-												   LIMIT $3 * 2)
-											  ) as authors
-										 ORDER BY author DESC
-										 LIMIT $3
-					) as authrs ON users.nickname = authrs.author
-					ORDER BY users.nickname DESC`
-	GetUsersNoSince = `SELECT users.nickname, users.fullname, users.about, users.email
-					FROM users
-							 INNER JOIN (SELECT DISTINCT author
-										 FROM (
-												  (SELECT distinct post.author
-												   FROM post
-												   WHERE post.forum = $1
-												   ORDER BY post.author DESC
-												   LIMIT $2 * 2)
-												  UNION ALL
-												  (SELECT distinct thread.author
-												   FROM thread
-												   WHERE thread.forum = $1
-												   ORDER BY thread.author DESC
-												   LIMIT $2 * 2)
-											  ) as authors
-										 ORDER BY author DESC
-										 LIMIT $2
-					) as authrs ON users.nickname = authrs.author
-					ORDER BY users.nickname DESC`
+	GetUsers                = `SELECT nickname, fullname, about, email FROM nickname_forum WHERE forum=$1`
 )
 
 type ForumRepositoryStruct struct {
@@ -149,17 +88,26 @@ func (forumRepository *ForumRepositoryStruct) GetForumThreads(slug string, limit
 func (forumRepository *ForumRepositoryStruct) GetForumUsers(slug string, limit int, desc bool, since string) (models.Users, error) {
 	var rows *pgx.Rows
 	var err error
-	switch desc {
-	case true:
-		switch since {
-		case "":
-			rows, err = forumRepository.DB.Query(GetUsersNoSince, slug, limit)
-		default:
-			rows, err = forumRepository.DB.Query(GetUsersDesc, slug, since, limit)
+	var query string
+
+	if since == "" {
+		if desc {
+			query = GetUsers + ` ORDER BY nickname DESC LIMIT NULLIF($2, 0)`
+		} else {
+			query = GetUsers + ` ORDER BY nickname ASC LIMIT NULLIF($2, 0)`
 		}
-	case false:
-		rows, err = forumRepository.DB.Query(GetUsers, slug, since, limit)
+
+		rows, err = forumRepository.DB.Query(query, slug, limit)
+	} else {
+		if desc {
+			query = GetUsers + ` AND nickname < $2 ORDER BY nickname DESC LIMIT NULLIF($3, 0)`
+		} else {
+			query = GetUsers + ` AND nickname > $2 ORDER BY nickname ASC LIMIT NULLIF($3, 0)`
+		}
+
+		rows, err = forumRepository.DB.Query(query, slug, since, limit)
 	}
+
 	if err != nil {
 		return nil, err
 	}

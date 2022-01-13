@@ -29,8 +29,8 @@ type ThreadUseCaseInterface interface {
 }
 
 type UserUseCaseInterface interface {
-	UserCreate(user *models.User) (models.User, error)
+	UserCreate(user *models.User) (models.User, models.Users, int)
 	UserGet(nickname string) (models.User, error)
-	UserChange(user models.User) (models.User, error)
+	UserChange(user models.User) (models.User, models.Users, int)
 	UsersGet(user models.User) (models.Users, error)
 }

@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	routing "github.com/qiangxue/fasthttp-routing"
 	"github.com/valyala/fasthttp"
-	"log"
 )
 
 type UserDeliveryStruct struct {
@@ -23,12 +22,10 @@ func (userDelivery *UserDeliveryStruct) SetHandlers(router *routing.Router) {
 	router.Post("/api/user/<nickname>/create", userDelivery.UserCreate)
 	router.Get("/api/user/<nickname>/profile", userDelivery.UserGet)
 	router.Post("/api/user/<nickname>/profile", userDelivery.UserChange)
-
-	log.Println("user delivery handlers are set")
 }
 
 func (userDelivery *UserDeliveryStruct) UserCreate(ctx *routing.Context) error {
-	log.Println("user create request start")
+	ctx.SetContentType("application/json")
 
 	var user models.User
 	err := json.Unmarshal(ctx.PostBody(), &user)
@@ -39,55 +36,37 @@ func (userDelivery *UserDeliveryStruct) UserCreate(ctx *routing.Context) error {
 	nickname := ctx.Param("nickname")
 	user.Nickname = nickname
 
-	userDB, err := userDelivery.userUseCase.UserGet(nickname)
+	createdUser, createdUsers, code := userDelivery.userUseCase.UserCreate(&user)
+	dataUser, err := json.Marshal(createdUser)
+	if err != nil {
+		return err
+	}
 
-	if err == nil {
-		data, err := json.Marshal(userDB)
+	dataUsers, err := json.Marshal(createdUsers)
+	if err != nil {
+		return err
+	}
 
-		if err != nil {
-			return err
-		}
-
+	switch code {
+	case 409:
 		ctx.Response.SetStatusCode(fasthttp.StatusConflict)
-		ctx.SetContentType("application/json")
-		ctx.Response.SetBody(data)
-
-		log.Println("user already exists")
-
-		return nil
+		ctx.SetBody(dataUsers)
+	case 201:
+		ctx.Response.SetStatusCode(fasthttp.StatusCreated)
+		ctx.SetBody(dataUser)
 	}
-
-	createdUser, err := userDelivery.userUseCase.UserCreate(&user)
-
-	if err != nil {
-		return err
-	}
-
-	data, err := json.Marshal(createdUser)
-
-	if err != nil {
-		return err
-	}
-
-	ctx.Response.SetStatusCode(fasthttp.StatusCreated)
-	ctx.SetContentType("application/json")
-	ctx.Response.SetBody(data)
-
-	log.Println("user create request finish")
 
 	return nil
 }
 
 func (userDelivery *UserDeliveryStruct) UserGet(ctx *routing.Context) error {
-	log.Println("user get request start")
+	ctx.SetContentType("application/json")
 
 	nickname := ctx.Param("nickname")
 
 	user, err := userDelivery.userUseCase.UserGet(nickname)
 
 	if err != nil {
-		log.Println(err)
-
 		message, _ := json.Marshal(models.Err{Message: errorsMsg.UserNotExist})
 		ctx.Response.SetBody(message)
 		ctx.Response.SetStatusCode(fasthttp.StatusNotFound)
@@ -101,16 +80,13 @@ func (userDelivery *UserDeliveryStruct) UserGet(ctx *routing.Context) error {
 	}
 
 	ctx.Response.SetStatusCode(fasthttp.StatusOK)
-	ctx.SetContentType("application/json")
 	ctx.Response.SetBody(data)
-
-	log.Println("user get request finish")
 
 	return nil
 }
 
 func (userDelivery *UserDeliveryStruct) UserChange(ctx *routing.Context) error {
-	log.Println("user change request start")
+	ctx.SetContentType("application/json")
 
 	var user models.User
 
@@ -122,50 +98,26 @@ func (userDelivery *UserDeliveryStruct) UserChange(ctx *routing.Context) error {
 	nickname := ctx.Param("nickname")
 	user.Nickname = nickname
 
-	userDB, err := userDelivery.userUseCase.UserGet(nickname)
-
-	if err != nil {
-		message, _ := json.Marshal(models.Err{Message: errorsMsg.UserNotExist})
-		ctx.Response.SetBody(message)
-		ctx.Response.SetStatusCode(fasthttp.StatusNotFound)
-		return nil
-	}
-
-	usersWithSameParams, err := userDelivery.userUseCase.UsersGet(userDB)
-
-	if err != nil {
-		return err
-	}
-
-	if len(usersWithSameParams) > 1 {
-		message, _ := json.Marshal(models.Err{Message: errorsMsg.UserNotExist})
-
-		ctx.Response.SetStatusCode(fasthttp.StatusConflict)
-		ctx.SetContentType("application/json")
-		ctx.Response.SetBody(message)
-
-		log.Println("users with same params")
-
-		return nil
-	}
-
-	changedUser, err := userDelivery.userUseCase.UserChange(user)
-
-	if err != nil {
-		return err
-	}
-
+	changedUser, _, code := userDelivery.userUseCase.UserChange(user)
 	data, err := json.Marshal(changedUser)
 
 	if err != nil {
 		return err
 	}
 
-	ctx.Response.SetStatusCode(fasthttp.StatusOK)
-	ctx.SetContentType("application/json")
-	ctx.Response.SetBody(data)
-
-	log.Println("user change request finish")
+	switch code {
+	case 404:
+		message, _ := json.Marshal(models.Err{Message: errorsMsg.UserNotExist})
+		ctx.Response.SetStatusCode(fasthttp.StatusNotFound)
+		ctx.Response.SetBody(message)
+	case 409:
+		message, _ := json.Marshal(models.Err{Message: errorsMsg.UserNotExist})
+		ctx.Response.SetStatusCode(fasthttp.StatusConflict)
+		ctx.Response.SetBody(message)
+	case 200:
+		ctx.Response.SetStatusCode(fasthttp.StatusOK)
+		ctx.SetBody(data)
+	}
 
 	return nil
 }

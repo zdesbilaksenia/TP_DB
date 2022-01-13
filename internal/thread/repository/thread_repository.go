@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/jackc/pgx"
-	"log"
 	"strings"
 )
 
@@ -100,7 +99,6 @@ func (threadRepository *ThreadRepositoryStruct) CreateThreadPosts(posts models.P
 	for i, _ := range posts {
 		posts[i].Thread = threadId
 		posts[i].Forum = forum
-		log.Println(posts[i])
 		var newPost models.Post
 
 		err := threadRepository.DB.QueryRow(CreatePost, posts[i].Parent, posts[i].Author, posts[i].Message, posts[i].Thread, posts[i].Forum, posts[i].Created).
@@ -283,7 +281,6 @@ func (threadRepository *ThreadRepositoryStruct) VoteThread(vote models.Vote, id 
 	}
 
 	if strings.Contains(err.Error(), "duplicate") {
-		log.Println("duplicate")
 		_, err = threadRepository.DB.Exec(UpdateVote, vote.Voice, id, vote.Nickname)
 		if err != nil {
 			return err

@@ -109,10 +109,6 @@ func (threadDelivery *ThreadDeliveryStruct) ThreadCreatePosts(ctx *routing.Conte
 	}
 
 	createdPosts, code := threadDelivery.threadUseCase.ThreadCreatePosts(slug, id, posts)
-	data, err := json.Marshal(createdPosts)
-	if err != nil {
-		return err
-	}
 
 	ctx.SetContentType("application/json")
 	switch code {
@@ -126,7 +122,15 @@ func (threadDelivery *ThreadDeliveryStruct) ThreadCreatePosts(ctx *routing.Conte
 		ctx.Response.SetBody(message)
 	case 201:
 		ctx.Response.SetStatusCode(fasthttp.StatusCreated)
-		ctx.SetBody(data)
+		if len(*createdPosts) > 0 {
+			data, err := json.Marshal(createdPosts)
+			if err != nil {
+				return err
+			}
+			ctx.SetBody(data)
+		} else {
+			ctx.SetBodyString("[]")
+		}
 	}
 
 	return nil
@@ -192,10 +196,6 @@ func (threadDelivery *ThreadDeliveryStruct) ThreadGetPosts(ctx *routing.Context)
 	sort := string(ctx.QueryArgs().Peek("sort"))
 
 	posts, code := threadDelivery.threadUseCase.ThreadGetPosts(slug, id, limit, since, desc, sort)
-	data, err := json.Marshal(posts)
-	if err != nil {
-		return err
-	}
 
 	ctx.SetContentType("application/json")
 	switch code {
@@ -205,7 +205,15 @@ func (threadDelivery *ThreadDeliveryStruct) ThreadGetPosts(ctx *routing.Context)
 		ctx.Response.SetBody(message)
 	case 200:
 		ctx.Response.SetStatusCode(fasthttp.StatusOK)
-		ctx.SetBody(data)
+		if len(*posts) > 0 {
+			data, err := json.Marshal(posts)
+			if err != nil {
+				return err
+			}
+			ctx.SetBody(data)
+		} else {
+			ctx.SetBodyString("[]")
+		}
 	}
 
 	return nil
