@@ -1,94 +1,73 @@
-CREATE
-    EXTENSION IF NOT EXISTS citext;
+create extension if not exists citext;
 
-drop table if exists thread, forum, users, votes, post, nickname_forum CASCADE;
+drop table if exists thread, forum, users, votes, post, nickname_forum cascade;
 
-CREATE
-    UNLOGGED TABLE users
+create unlogged table users
 (
     nickname citext collate "C" not null
-        constraint users_pk
-            primary key,
+        constraint users_pk primary key,
     fullname text,
     about    text,
     email    citext unique
 );
 
-CREATE
-    UNLOGGED TABLE forum
+create unlogged table forum
 (
     title   text,
     "user"  citext
-        constraint forum_users_nickname_fk
-            references users,
+        constraint forum_users_nickname_fk references users,
     slug    citext not null
-        constraint forum_pk
-            primary key,
+        constraint forum_pk primary key,
     posts   bigint default 0,
     threads bigint default 0
 );
 
-CREATE
-    UNLOGGED TABLE post
+create unlogged table post
 (
     id       bigserial
-        constraint post_pkey
-            primary key,
+        constraint post_pkey primary key,
     parent   bigint                   default 0,
     author   citext
-        constraint post_users_nickname_fk
-            references users,
+        constraint post_users_nickname_fk references users,
     message  text,
     isedited boolean                  default false,
     forum    citext
-        constraint post_forum_slug_fk
-            references forum,
+        constraint post_forum_slug_fk references forum,
     thread   integer,
     created  timestamp with time zone default now(),
-    path     INT[]                    DEFAULT ARRAY []::INTEGER[]
+    path     bigint[]                 default array []::bigint[]
 );
 
-CREATE
-    OR REPLACE FUNCTION add_post() RETURNS TRIGGER AS
+create or replace function add_post() returns trigger as
 $$
-BEGIN
-    UPDATE forum
-    SET posts = posts + 1
-    WHERE Slug = NEW.forum;
-    NEW.path
-        = (SELECT path FROM post WHERE id = NEW.parent LIMIT 1) || NEW.id;
-    RETURN NEW;
-END
-$$
-    LANGUAGE 'plpgsql';
+begin
+    update forum
+    set posts = posts + 1
+    where slug = new.forum;
+    new.path = (select path from post where id = new.parent limit 1) || new.id;
+    return new;
+end
+$$ language 'plpgsql';
 
-CREATE TRIGGER add_post
-    BEFORE INSERT
-    ON post
-    FOR EACH ROW
-EXECUTE PROCEDURE add_post();
+create trigger add_post
+    before insert
+    on post
+    for each row
+execute procedure add_post();
 
-CREATE
-    UNLOGGED TABLE thread
+create unlogged table thread
 (
-    id      serial
-        constraint thread_pk
-            primary key,
+    id      serial constraint thread_pk primary key,
     title   text,
-    author  citext
-        constraint thread_users_nickname_fk
-            references users,
-    forum   citext
-        constraint thread_forum_slug_fk
-            references forum,
+    author  citext constraint thread_users_nickname_fk references users,
+    forum   citext constraint thread_forum_slug_fk references forum,
     message text,
-    votes   integer                  default 0,
+    votes   integer default 0,
     slug    citext,
     created timestamp with time zone default now()
 );
 
-CREATE
-    OR REPLACE FUNCTION add_thread() RETURNS TRIGGER AS
+CREATE OR REPLACE FUNCTION add_thread() RETURNS TRIGGER AS
 $$
 BEGIN
     UPDATE forum
@@ -96,10 +75,9 @@ BEGIN
     WHERE NEW.Forum = slug;
     RETURN NULL;
 END
-$$
-    LANGUAGE 'plpgsql';
+$$ LANGUAGE 'plpgsql';
 
-CREATE TRIGGER create_thread_trigger
+CREATE TRIGGER add_thread
     AFTER INSERT
     ON thread
     FOR EACH ROW

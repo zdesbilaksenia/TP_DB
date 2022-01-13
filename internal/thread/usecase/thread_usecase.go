@@ -92,6 +92,9 @@ func (threadUseCase *ThreadUseCaseStruct) ThreadCreatePosts(slug string, id int,
 	}
 
 	posts, err = threadUseCase.threadRepository.CreateThreadPosts(posts, thread.Id, thread.Forum)
+	if err != nil {
+		return nil, 500
+	}
 
 	return &posts, 201
 }
