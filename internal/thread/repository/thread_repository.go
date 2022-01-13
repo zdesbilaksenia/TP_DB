@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/jackc/pgx"
 	"strings"
+	"time"
 )
 
 const (
@@ -95,10 +96,11 @@ func (threadRepository *ThreadRepositoryStruct) UpdateThreadById(threadUpd model
 
 func (threadRepository *ThreadRepositoryStruct) CreateThreadPosts(posts models.Posts, threadId int, forum string) (models.Posts, error) {
 	var createdPosts models.Posts
-
+	createdTime := time.Now()
 	for i, _ := range posts {
 		posts[i].Thread = threadId
 		posts[i].Forum = forum
+		posts[i].Created = createdTime
 		var newPost models.Post
 
 		err := threadRepository.DB.QueryRow(CreatePost, posts[i].Parent, posts[i].Author, posts[i].Message, posts[i].Thread, posts[i].Forum, posts[i].Created).
@@ -112,7 +114,6 @@ func (threadRepository *ThreadRepositoryStruct) CreateThreadPosts(posts models.P
 				&newPost.Thread,
 				&newPost.Created,
 			)
-
 		if err != nil {
 			return nil, err
 		}

@@ -82,6 +82,7 @@ func (forumRepository *ForumRepositoryStruct) GetForumThreads(slug string, limit
 		threads = append(threads, &thread)
 	}
 
+	rows.Close()
 	return threads, nil
 }
 
@@ -122,5 +123,6 @@ func (forumRepository *ForumRepositoryStruct) GetForumUsers(slug string, limit i
 		users = append(users, &user)
 	}
 
+	rows.Close()
 	return users, nil
 }
