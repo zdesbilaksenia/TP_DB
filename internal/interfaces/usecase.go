@@ -21,7 +21,7 @@ type ServiceUseCaseInterface interface {
 }
 
 type ThreadUseCaseInterface interface {
-	ThreadCreatePosts(slug string, id int, posts models.Posts) (*models.Posts, int)
+	ThreadCreatePosts(slug string, id int, posts models.Posts) (models.Posts, int)
 	ThreadUpdate(threadUpd models.ThreadUpdate, slug string, id int) (*models.Thread, int)
 	ThreadGet(slug string, id int) (*models.Thread, int)
 	ThreadVote(vote models.Vote, slug string, id int) (*models.Thread, int)

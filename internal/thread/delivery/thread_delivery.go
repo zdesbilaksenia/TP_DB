@@ -122,7 +122,7 @@ func (threadDelivery *ThreadDeliveryStruct) ThreadCreatePosts(ctx *routing.Conte
 		ctx.Response.SetBody(message)
 	case 201:
 		ctx.Response.SetStatusCode(fasthttp.StatusCreated)
-		if len(*createdPosts) > 0 {
+		if len(createdPosts) > 0 {
 			data, err := json.Marshal(createdPosts)
 			if err != nil {
 				return err

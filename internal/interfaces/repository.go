@@ -23,7 +23,7 @@ type ServiceRepositoryInterface interface {
 type ThreadRepositoryInterface interface {
 	GetThreadBySlug(slug string) (models.Thread, error)
 	GetThreadById(id int) (models.Thread, error)
-	CreateThreadPosts(posts models.Posts, threadId int, forum string) (models.Posts, error)
+	CreateThreadPosts(posts models.Posts, threadId int, forum string) (models.Posts, int)
 	UpdateThreadById(threadUpd models.ThreadUpdate, id int) (models.Thread, error)
 	UpdateThreadBySlug(threadUpd models.ThreadUpdate, slug string) (models.Thread, error)
 	VoteThread(vote models.Vote, id int) error

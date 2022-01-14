@@ -4,6 +4,7 @@ import (
 	"TP_DB/internal/models"
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/jackc/pgx"
 	"strings"
 	"time"
@@ -94,34 +95,51 @@ func (threadRepository *ThreadRepositoryStruct) UpdateThreadById(threadUpd model
 	return thread, err
 }
 
-func (threadRepository *ThreadRepositoryStruct) CreateThreadPosts(posts models.Posts, threadId int, forum string) (models.Posts, error) {
-	var createdPosts models.Posts
-	createdTime := time.Now()
-	for i, _ := range posts {
-		posts[i].Thread = threadId
-		posts[i].Forum = forum
-		posts[i].Created = createdTime
-		var newPost models.Post
+func (threadRepository *ThreadRepositoryStruct) CreateThreadPosts(posts models.Posts, threadId int, forum string) (models.Posts, int) {
+	var insertedPosts models.Posts
+	var sqlValues []interface{}
 
-		err := threadRepository.DB.QueryRow(CreatePost, posts[i].Parent, posts[i].Author, posts[i].Message, posts[i].Thread, posts[i].Forum, posts[i].Created).
-			Scan(
-				&newPost.Id,
-				&newPost.Parent,
-				&newPost.Author,
-				&newPost.Message,
-				&newPost.IsEdited,
-				&newPost.Forum,
-				&newPost.Thread,
-				&newPost.Created,
-			)
-		if err != nil {
-			return nil, err
-		}
-
-		createdPosts = append(createdPosts, &newPost)
+	sqlQuery := `INSERT INTO post (parent, author, message, forum, thread, created) VALUES `
+	if len(posts) == 0 {
+		return models.Posts{}, 0
 	}
-
-	return createdPosts, nil
+	created := time.Now()
+	for i, post := range posts {
+		author := ""
+		err := threadRepository.DB.QueryRow("select nickname from users where nickname = $1", post.Author).Scan(&author)
+		if err == pgx.ErrNoRows {
+			return nil, 404
+		}
+		if post.Parent != 0 {
+			id := -1
+			err := threadRepository.DB.QueryRow("select id from post where thread = $1 and id = $2", threadId, post.Parent).Scan(&id)
+			if err == pgx.ErrNoRows {
+				return nil, 409
+			}
+		}
+		sqlValuesString := fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d),", i*6+1, i*6+2, i*6+3, i*6+4, i*6+5, i*6+6)
+		sqlQuery += sqlValuesString
+		sqlValues = append(sqlValues, post.Parent, post.Author, post.Message, forum, threadId, created)
+	}
+	sqlQuery = strings.TrimSuffix(sqlQuery, ",")
+	sqlQuery += ` RETURNING id, parent, author, message, isedited, forum, thread, created;`
+	rows, err := threadRepository.DB.Query(sqlQuery, sqlValues...)
+	if err != nil {
+		return nil, 500
+	}
+	defer rows.Close()
+	for rows.Next() {
+		post := models.Post{}
+		err := rows.Scan(&post.Id, &post.Parent, &post.Author, &post.Message, &post.IsEdited, &post.Forum, &post.Thread, &post.Created)
+		if err != nil || post.Author == "" {
+			return nil, 500
+		}
+		insertedPosts = append(insertedPosts, &post)
+	}
+	if len(insertedPosts) == 0 {
+		return nil, 0
+	}
+	return insertedPosts, 0
 }
 
 func (threadRepository *ThreadRepositoryStruct) getThreadPostsFlat(id int, limit int, since string, desc bool) (models.Posts, error) {

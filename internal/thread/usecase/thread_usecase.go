@@ -61,7 +61,7 @@ func (threadUseCase *ThreadUseCaseStruct) ThreadUpdate(threadUpd models.ThreadUp
 	return &thread, 200
 }
 
-func (threadUseCase *ThreadUseCaseStruct) ThreadCreatePosts(slug string, id int, posts models.Posts) (*models.Posts, int) {
+func (threadUseCase *ThreadUseCaseStruct) ThreadCreatePosts(slug string, id int, posts models.Posts) (models.Posts, int) {
 	var thread models.Thread
 	var err error
 	if slug != "" {
@@ -69,34 +69,14 @@ func (threadUseCase *ThreadUseCaseStruct) ThreadCreatePosts(slug string, id int,
 	} else if id != -1 {
 		thread, err = threadUseCase.threadRepository.GetThreadById(id)
 	}
-
 	if err != nil {
 		return nil, 404
 	}
-
-	for i, _ := range posts {
-		if posts[i].Parent != 0 {
-			post, err := threadUseCase.postRepository.GetPostInfo(posts[i].Parent)
-			if post.Thread != thread.Id {
-				return nil, 409
-			}
-			if err != nil {
-				return nil, 409
-			}
-		}
-
-		_, err := threadUseCase.userRepository.UserGet(posts[i].Author)
-		if err != nil {
-			return nil, 404
-		}
+	posts, errInt := threadUseCase.threadRepository.CreateThreadPosts(posts, thread.Id, thread.Forum)
+	if errInt != 0 {
+		return nil, errInt
 	}
-
-	posts, err = threadUseCase.threadRepository.CreateThreadPosts(posts, thread.Id, thread.Forum)
-	if err != nil {
-		return nil, 500
-	}
-
-	return &posts, 201
+	return posts, 201
 }
 
 func (threadUseCase *ThreadUseCaseStruct) ThreadGetPosts(slug string, id int, limit int, since string, desc bool, sort string) (*models.Posts, int) {
